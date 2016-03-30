@@ -1,6 +1,7 @@
+
 module SigmoidNeuralNetwork
 
-export NeuralNetwork, create_network
+export NeuralNetwork, create_network, sigmoid
 
 type NeuralNetwork
 	num_layers::Int64
@@ -43,4 +44,20 @@ function create_network( layer_sizes::Vector{Int64} )
 	return net
 end
 
+function feed_forward( net::NeuralNetwork, activation::Array{Float64, 1} )
+	for (bias, weight) in zip(net.biases, net.weights)
+		activation = sigmoid(weight*activation + bias)
+	end
+	return activation
 end
+
+function sigmoid( input::Array{Float64, 2} )
+	for i = 1:size(input,1)
+		input[i] = 1.0/(1 + exp(-input[i]))
+	end
+
+	return input
+end
+
+end
+
