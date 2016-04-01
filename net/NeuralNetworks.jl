@@ -66,7 +66,7 @@ function gradient_descent( net::NeuralNetwork,
 		mini_batches = generate_randombatches( training_dataset, training_batchsize )
 
 		for batch in mini_batches
-			updatenetwork_with_batch( batch, learning_rate )
+			updatenetwork_with_batch( net, batch, learning_rate )
 		end
 
 		correct = testnetwork( test_dataset )
@@ -76,7 +76,44 @@ function gradient_descent( net::NeuralNetwork,
 	return
 end
 
-function updatenetwork_with_batch( batch, learning_rate::Float64 )
+function getcolumn( matrix::Array{Float64,2}, index::Int64 )
+	return matrix[((size(matrix,1)*(index-1))+1):((size(matrix,1))*index)]
+end
+
+function updatenetwork_with_batch( net:NeuralNetwork, batch, learning_rate::Float64 )
+	batch_size = size(batch[1], 2)
+	nabla_b = []
+	nabla_w = []
+
+	for i = 1:(total_layers - 1)
+		push!(nabla_b, zeros(Float64, layer_sizes[i + 1], 1))
+		push!(nabla_w, zeros(Float64, layer_sizes[i + 1], layer_sizes[i]))
+	end
+
+	# calculate error for each input vector and adjust nabla_x accordingly
+	for i = 1:batch_size
+		inp_vector = getcolumn(batch[1], i)
+		out_vector = getcolumn(batch[2], i)
+
+		delta_nabla_b, delta_nabla_w = back_propagate( net, inp_vector, out_vector )
+
+		for i = 1:net.num_layers
+			nabla_b[i] += delta_nabla_b[i]
+			nabla_w[i] += delta_nabla_w[i]
+
+		end
+	end
+
+	# calculating new weights/biases while averaging gradient change over batch size
+	for i = 1:net.num_layers
+		net.weights[i] = (net.weights[i] - ((learning_rate/batch_size) * nabla_w[i]))
+		net.biases[i] = (net.biases[i] - ((learning_rate/batch_size) * nabla_b[i]))
+	end
+
+	return
+end
+
+function back_propagate( net::NeuralNetwork, inp::Array{Float64, 2}, out::Array{Float64,2} )
 	return
 end
 
