@@ -1,7 +1,7 @@
 
 module SigmoidNeuralNetwork
 
-export NeuralNetwork, create_network, gradient_descent, create_randomized_minibatches
+export NeuralNetwork, create_network, gradient_descent, generate_randombatches
 
 type NeuralNetwork
 	num_layers::Int64
@@ -51,51 +51,89 @@ function feed_forward( net::NeuralNetwork, activation::Array{Float64, 1} )
 	return activation
 end
 
-function gradient_descent( net::NeuralNetwork, training_data::Array{Float64,2}, training_epochs::Int64, training_batchsize::Int64, learning_rate::Float64, test_data::Array{Float64,2}=nothing)
-	num_testitems = 0
-	if test_data != nothing 
-		num_testitems = size(test_data, 2)
-	end
-	num_trainitems = size(training_data, 2)
+function gradient_descent( net::NeuralNetwork, 
+	training_dataset::Array{Array{Float64,2}, 1}, 
+	training_epochs::Int64, 
+	training_batchsize::Int64, 
+	learning_rate::Float64, 
+	test_dataset::Array{Array{Float64,2},1}	)
+
+	#TODO, verify data and label arrays are same size
+	num_testitems = size(test_dataset[1], 2)
+	num_trainitems = size(training_dataset[1], 2)
 
 	for i = 1:training_epochs
-		mini_batches = create_randmomized_minibatches( training_data, training_batchsize )
+		mini_batches = generate_randombatches( training_dataset, training_batchsize )
+
+		for batch in mini_batches
+			updatenetwork_with_batch( batch, learning_rate )
+		end
+
+		correct = testnetwork( test_dataset )
+		println(string("Epoch ", i, " completed: ", correct, " / ", num_testitems))
 	end
 
 	return
 end
 
-function create_randomized_minibatches( training_data::Array{Float64, 2}, training_batchsize::Int64 )
-	mini_batches = []
-	added_vectors = []
-	remaining = dataset_size = size(training_data, 2)
-	datavector_size = size(training_data, 1)
-
-	srand()
-
-	while remaining >= training_batchsize
-		batch = Array(Float64, datavector_size, training_batchsize)
-		for i = 1:training_batchsize
-			
-			randv = rand(1:dataset_size)
-			while randv in added_vectors
-				randv = rand(1:dataset_size)
-			end
-			push!(added_vectors, randv)
-			copyvector( batch, i, training_data, randv )
-			remaining -= 1
-
-		end
-		push!(mini_batches, batch)
-	end
-
-	return mini_batches
+function updatenetwork_with_batch( batch, learning_rate::Float64 )
+	return
 end
 
-function copyvector( m1::Array{Float64, 2}, m1_index, m2::Array{Float64, 2}, m2_index )
-	for i = 1:size(m1,1)
-		m1[i, m1_index] = m2[i, m2_index]
+function testnetwork( dataset::Array{Array{Float64, 2}, 1} )
+	return
+end
+
+
+function generate_randombatches( dataset::Array{Array{Float64,2}, 1}, training_batchsize::Int64 )
+	data = dataset[1]
+	solutions = dataset[2]
+	added = []
+
+	data_vectorsize = size(data, 1)
+	soln_vectorsize = size(solutions, 1)
+
+	dataset_size = remaining = size(data, 2)
+
+	batches = []
+
+	while remaining >= training_batchsize
+		batch = Array(Any,0)
+		batch_data = Array(Float64, data_vectorsize, training_batchsize)
+		batch_solns = Array(Float64, soln_vectorsize, training_batchsize)
+
+		for i = 1:training_batchsize
+			#random index to determine which vector to include in the batch
+			v = rand(1:dataset_size)
+			while v in added
+				v = rand(1:dataset_size)
+			end
+			push!(added,v)
+
+			data_dest_start = (data_vectorsize*(i-1))+1
+			data_dest_end = data_vectorsize*i
+
+			soln_dest_start = (soln_vectorsize*(i-1))+1
+			soln_dest_end = soln_vectorsize*i
+
+			data_src_start = (data_vectorsize*(v-1))+1
+			data_src_end = data_vectorsize*v
+
+			soln_src_start = (soln_vectorsize*(v-1))+1
+			soln_src_end = soln_vectorsize*v
+
+			# copying column vectors
+			batch_data[data_dest_start:data_dest_end] = data[data_src_start:data_src_end]
+			batch_solns[soln_dest_start:soln_dest_end] = solutions[soln_src_start:soln_src_end]
+			remaining -= 1
+		end
+		push!(batch, batch_data)
+		push!(batch, batch_solns)
+
+		push!(batches, batch)
 	end
+
+	return batches
 end
 
 function sigmoid( input::Array{Float64, 2} )
