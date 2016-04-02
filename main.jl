@@ -7,13 +7,13 @@ importall MNIST
 #example
 data = MNIST_getdata()
 
-train = Array(Array{Real,2}, 0)
-test = Array(Array{Real,2}, 0)
+train = []
+test = []
 
 push!(train, data.trainingdata)
 push!(train, data.traininglabel)
 push!(test, data.testdata)
 push!(test, data.testlabel)
 
-net = create_network([784,100,10])
-gradient_descent(net, train, 30, 10, 3.0, test)
+net = create_network([784,30,10])
+gradient_descent(net, train, 30, 5, 1.5, test)

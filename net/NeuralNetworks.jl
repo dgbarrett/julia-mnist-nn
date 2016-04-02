@@ -7,8 +7,8 @@ type NeuralNetwork
 	num_layers::Int64
 	layer_sizes::Vector{Int64}
 
-	biases
-	weights
+	biases::Array{Array{Float64},1}
+	weights::Array{Array{Float64}, 1}
 
 	NeuralNetwork() = new(0, [], [], [])
 end
@@ -75,7 +75,7 @@ function gradient_descent( net::NeuralNetwork,
 		end
 
 		correct = testnetwork( net, test_dataset )
-		println(string("\tEpoch ", i, " completed: ", correct, " / ", num_testitems))
+		println(string("\tEpoch ", i, " completed: ", correct, " / ", num_testitems, "\n"))
 	end
 
 	return
@@ -94,8 +94,8 @@ function updatenetwork_with_batch( net::NeuralNetwork, batch, learning_rate::Flo
 
 	# calculate error for each input vector and adjust nabla_x accordingly
 	for i = 1:batch_size
-		inp_vector = slicedim(batch[1], 2, i)
-		out_vector = slicedim(batch[2], 2, i)
+		inp_vector = slicedim(batch[1], 2, i)::Array{Float64,2}
+		out_vector = slicedim(batch[2], 2, i)::Array{Int64,2}
 
 		delta_nabla_b, delta_nabla_w = back_propagate( net, inp_vector, out_vector )
 
@@ -178,7 +178,7 @@ function unvectorize( matrix )
 end
 
 function generate_randombatches( dataset, training_batchsize::Int64 )
-	println("\n\tGenerating randomized batches...")
+	println("\t\tGenerating randomized batches...")
 	data = dataset[1]
 	solutions = dataset[2]
 	added = zeros(Int8, size(data, 2))
@@ -226,7 +226,7 @@ function generate_randombatches( dataset, training_batchsize::Int64 )
 
 		push!(batches, batch)
 	end
-	println("\tDone generating batches.")
+	println("\t\tDone generating batches.")
 
 	return batches
 end
