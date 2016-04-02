@@ -55,11 +55,11 @@ function feed_forward( net::NeuralNetwork, activation::Array{Float64, 2} )
 end
 
 function gradient_descent( net::NeuralNetwork, 
-	training_dataset::Array{Array{Real,2}, 1}, 
+	training_dataset, 
 	training_epochs::Int64, 
 	training_batchsize::Int64, 
 	learning_rate::Float64, 
-	test_dataset::Array{Array{Real,2},1}	)
+	test_dataset	)
 	println("\nStarting gradient descent...")
 
 	#TODO, verify data and label arrays are same size
@@ -67,13 +67,11 @@ function gradient_descent( net::NeuralNetwork,
 	num_trainitems = size(training_dataset[1], 2)
 
 	for i = 1:training_epochs
+		println(string("\tStarting epoch ", i, "..."))
 		mini_batches = generate_randombatches( training_dataset, training_batchsize )
-		batches = size(mini_batches, 1)
 
 		for batch in mini_batches
 			updatenetwork_with_batch( net, batch, learning_rate )
-			batches -= 1 
-			println("\t\tRemaining batches: ", batches)
 		end
 
 		correct = testnetwork( net, test_dataset )
@@ -88,7 +86,8 @@ function updatenetwork_with_batch( net::NeuralNetwork, batch, learning_rate::Flo
 	nabla_b = []
 	nabla_w = []
 
-	for i = 1:(net.num_layers - 1)
+	imax = net.num_layers - 1
+	for i = 1:imax
 		push!(nabla_b, zeros(Float64, net.layer_sizes[i + 1], 1))
 		push!(nabla_w, zeros(Float64, net.layer_sizes[i + 1], net.layer_sizes[i]))
 	end
@@ -153,7 +152,7 @@ function back_propagate( net::NeuralNetwork, inp::Array{Float64, 2}, out::Array{
 	return (nabla_b, nabla_w)
 end
 
-function testnetwork( net::NeuralNetwork, dataset::Array{Array{Real, 2}, 1} )
+function testnetwork( net::NeuralNetwork, dataset )
 	data = dataset[1]
 	solutions = dataset[2]
 
@@ -161,7 +160,7 @@ function testnetwork( net::NeuralNetwork, dataset::Array{Array{Real, 2}, 1} )
 	correct = 0
 
 	for i = 1:dataset_size
-		if findmax(feed_forward(net, getcolumn(data, i)))[2] == unvectorize(solutions[i])
+		if findmax(feed_forward(net, slicedim(data, 2, i)))[2] == unvectorize(slicedim(solutions, 2, i))
 			correct += 1
 		end
 	end
@@ -169,16 +168,16 @@ function testnetwork( net::NeuralNetwork, dataset::Array{Array{Real, 2}, 1} )
 	return correct
 end
 
-function unvectorize( matrix::Array{Float64,2} )
+function unvectorize( matrix )
 	imax = size(matrix, 1)
-	for i = i:imax
+	for i = 1:imax
 		if matrix[i] == 1 
-			return i+1 
+			return i-1 
 		end
 	end
 end
 
-function generate_randombatches( dataset::Array{Array{Real,2}, 1}, training_batchsize::Int64 )
+function generate_randombatches( dataset, training_batchsize::Int64 )
 	println("\n\tGenerating randomized batches...")
 	data = dataset[1]
 	solutions = dataset[2]
@@ -197,6 +196,7 @@ function generate_randombatches( dataset::Array{Array{Real,2}, 1}, training_batc
 		batch_solns = Array(Int64, soln_vectorsize, training_batchsize)
 
 		for i = 1:training_batchsize
+			srand()
 			#random index to determine which vector to include in the batch
 			v = rand(1:dataset_size)
 			while added[v] == 1
@@ -231,11 +231,7 @@ function generate_randombatches( dataset::Array{Array{Real,2}, 1}, training_batc
 	return batches
 end
 
-function getcolumn( matrix::Array{Float64,2}, index::Int64 )
-	return matrix[((size(matrix,1)*(index-1))+1):((size(matrix,1))*index)]
-end
-
-function getcolumn( matrix::Array{Int64,2}, index::Int64 )
+function getcolumn( matrix, index )
 	return matrix[((size(matrix,1)*(index-1))+1):((size(matrix,1))*index)]
 end
 
