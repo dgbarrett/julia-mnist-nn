@@ -160,7 +160,7 @@ function testnetwork( net::NeuralNetwork, dataset )
 	correct = 0
 
 	for i = 1:dataset_size
-		if findmax(feed_forward(net, slicedim(data, 2, i)))[2] == unvectorize(slicedim(solutions, 2, i))
+		if (findmax(feed_forward(net, slicedim(data, 2, i)))[2]-1) == unvectorize(slicedim(solutions, 2, i))
 			correct += 1
 		end
 	end
