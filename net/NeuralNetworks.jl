@@ -44,7 +44,7 @@ function create_network( layer_sizes::Vector{Int64} )
 	return net
 end
 
-function feed_forward( net::NeuralNetwork, activation::Array{Float64, 1} )
+function feed_forward( net::NeuralNetwork, activation::Array{Float64, 2} )
 	for (bias, weight) in zip(net.biases, net.weights)
 		activation = sigmoid(weight*activation + bias)
 	end
@@ -69,7 +69,7 @@ function gradient_descent( net::NeuralNetwork,
 			updatenetwork_with_batch( net, batch, learning_rate )
 		end
 
-		correct = testnetwork( test_dataset )
+		correct = testnetwork( net, test_dataset )
 		println(string("Epoch ", i, " completed: ", correct, " / ", num_testitems))
 	end
 
@@ -114,13 +114,66 @@ function updatenetwork_with_batch( net:NeuralNetwork, batch, learning_rate::Floa
 end
 
 function back_propagate( net::NeuralNetwork, inp::Array{Float64, 2}, out::Array{Float64,2} )
-	return
+	nabla_b = []
+	nabla_w = []
+
+	for i = 1:(total_layers - 1)
+		push!(nabla_b, zeros(Float64, layer_sizes[i + 1], 1))
+		push!(nabla_w, zeros(Float64, layer_sizes[i + 1], layer_sizes[i]))
+	end
+
+	activation = inp
+	activations = []
+	push!(activations, activation)
+
+	z_vectors = []
+
+	for i = 1:net.num_layers
+		z = net.weights[i]*activation + net.biases[i]
+		push!(z_vectors, z)
+		activation = sigmoid(z)
+		push!(activations, activation)
+	end
+
+	delta = cost_derivative(activations[end], out) * sigmoid_prime(zs[end])
+	nabla_b[end] = delta
+	nabla_w[end] = delta * transpose(activations[end-1])
+
+	for i = net.num_layers:-1:3
+		z = z_vectors[i-1]
+		sp = sigmoid_prime(z)
+		delta = (transpose(net.weights[i]) * delta) * sp
+		nabla_b[i-1] = delta
+		nabla_w[i-1] = delta * transpose(activations[i-2])
+	end
+
+	return (nabla_b, nabla_w)
 end
 
-function testnetwork( dataset::Array{Array{Float64, 2}, 1} )
-	return
+function testnetwork( net::NerualNetwork, dataset::Array{Array{Float64, 2}, 1} )
+	data = dataset[1]
+	solutions = dataset[2]
+
+	dataset_size = size(data,2)
+	correct = 0
+
+	for i = 1:dataset_size
+		if findmax(feed_forward(net, getcolumn(dataset, i)))[2] == unvectorize(solutions[i])
+			correct += 1
+		end
+	end
+
+	return correct
 end
 
+function unvectorize( matrix::Array{Float64,2} )
+	imax = size(matrix, 1)
+	for i = i:imax
+		if matrix[i] == 1 
+			return i+1 
+		end
+	end
+end
 
 function generate_randombatches( dataset::Array{Array{Float64,2}, 1}, training_batchsize::Int64 )
 	data = dataset[1]
@@ -174,12 +227,22 @@ function generate_randombatches( dataset::Array{Array{Float64,2}, 1}, training_b
 end
 
 function sigmoid( input::Array{Float64, 2} )
-	for i = 1:size(input,1)
+	imax = size(input,1) * size(input,2)
+	for i = 1:imax
 		input[i] = 1.0/(1 + exp(-input[i]))
 	end
-
 	return input
 end
+
+function cost_derivative( out::Array{Float64,2}, expected_out::Array{Float64,2} )
+	return out - expected_out
+end
+
+function sigmoid_prime( z::Array{Float64,2} )
+	return sigmoid(z)*(1-sigmoid(z))
+end
+
+
 
 end
 
